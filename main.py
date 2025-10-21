@@ -1,14 +1,17 @@
-import random
 from player import Player
+from colorist import Color
 
 
 def play_game():
     cpu = Player()
     user = Player()
 
-    user.show_boards()
+    print(f"{Color.CYAN}Welcome to Battle Ships!{Color.OFF}")
+    print("You will be playing a match against the computer, firstly, please enter the coordinates of 5 ships.\n")
 
-    user.collect_ship_coordinates()
+    user.collect_ship_coordinates()  # Set up the board
+
+    user.show_boards()
 
 
 if __name__ == '__main__':
