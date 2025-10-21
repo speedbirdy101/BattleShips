@@ -120,3 +120,28 @@ class Player:
                 self.personal_board[r][c] = ident
 
             clear()
+
+    def cpu_load_ship_locations(self):
+        for ship, ship_length in SHIPS.items():
+            # Pick a random coordinate
+            row, column = 0, 0
+
+            while True:
+                row, column = random.randint(0, self.height - 1), random.randint(0, self.width - 1)
+
+                if self.personal_board[row][column] != self.default_delimeter:  # It is not a valid point
+                    continue  # Try again
+
+                possible_orientations = self.find_possible_orientations((row, column), ship_length - 1)
+                if len(possible_orientations) == 0:   # It clashes with another ship
+                    continue
+
+                orientation = random.randint(0, len(possible_orientations) - 1)
+                orientation = possible_orientations[orientation]
+                orientation_direction = ORIENTATIONS[orientation]
+
+                for x in range(ship_length):
+                    r, c = row + (orientation_direction[0] * x), column + (orientation_direction[1] * x)
+                    self.personal_board[r][c] = f" {ship[0].upper()} "
+
+                break
