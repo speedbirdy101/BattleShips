@@ -119,8 +119,26 @@ def cpu_turn(user, cpu):
         # Get rid of that direction now that we have hit it
         remove_first_queue()
 
-        if hit:
-            cpu_queue.insert(0, (next_coordinate, [next_direction]))  # Add the next point to try
+        if hit and hit != "SINK":  # If we get a sink, we do not need to continue in that direction
+            directions_to_try = [next_direction]
+            for a, b in ORIENTATIONS.items():
+                if b != next_direction and b != (-next_direction[0], -next_direction[1]):
+                    directions_to_try.append(b)
+
+            cpu_queue.insert(0, (next_coordinate, directions_to_try))  # Add the next point to try if we hit, but no sink
+            """
+            DONE:
+                we will add next_direction first (as already done above)
+                Then we will add the 2 other directions (not the one we came from -[next_direction] and not the one we are going to)
+            """
+
+            output_description = f"{Color.RED}The Computer hit one of your ships!{Color.OFF}"
+
+        elif hit == "SINK":
+            output_description = f"{Color.RED}The Computer sunk one of your ships!{Color.OFF}"
+
+        else:
+            output_description = f"{Color.GREEN}The Computer missed!{Color.OFF}"
 
     readable_coordinates = f'{cpu.ALPHABET[next_coordinate[1]]}{next_coordinate[0] + 1}'
 
@@ -179,9 +197,9 @@ def play_game():
             cpu_choice = f"The Computer chose {Color.MAGENTA}{cpu_choice}{Color.OFF}"
 
         else:  # Odd: User
-            print(f"The Computer has sunk {Color.YELLOW}{5 - len(user.ships)}{Color.OFF} ships, you have sunk {Color.YELLOW}{5 - len(cpu.ships)}{Color.OFF} ships.")
+            print(f"The Computer has sunk {Color.YELLOW}{5 - len(user.ships)}{Color.OFF} ships, you have sunk {Color.YELLOW}{5 - len(cpu.ships)}{Color.OFF} ships.\n")
 
-            if cpu_choice != "" and cpu_choice_output_buffer == "":
+            if cpu_choice != "" and cpu_choice_output_buffer != "":
                 print(f"{cpu_choice} - {cpu_choice_output_buffer}")
 
             if user_choice_output_buffer != "":
@@ -205,3 +223,19 @@ def play_game():
 
 if __name__ == '__main__':
     play_game()
+
+
+"""
+
+Notes:
+- I have added the ability for the CPU to intelligently target ships once it has found a hit, to target ships close together.
+  However in doing this, it is making it worse in a way, as the CPU is now trying every single possible direction around a EVERY hit, which is not optimal.
+  This is optimal in some cases, but not all, as it can lead to wasted hits in lots of scenarios.
+  
+To consider:
+- I am not too sure if when the CPU hits, and it reports a H, it is correct.
+  It seemed that the CPU hit points around the area it found a confirmed hit, but a lot of the points which i THINK should have been misses were reported as hits.
+  I may be making this up --> need to test more thoroughly (Remove clear ability to be able to look back into the past. & log CPU personal board.)
+
+
+"""
