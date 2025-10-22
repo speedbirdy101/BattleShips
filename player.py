@@ -1,6 +1,6 @@
 import os
 import random
-from colorist import Color
+from color import Color
 
 
 def clear() -> None:
@@ -40,6 +40,11 @@ class Player:
             [self.default_delimeter for i in range(self.width)] for j in range(self.height)
         ]
 
+        self.ships = []
+
+    def valid_point(self, coordinate):
+        return 0 <= coordinate[0] < self.height and 0 <= coordinate[1] < self.width
+
     def print_board(self, board: list[list[str]], title: str, alphabet: str) -> None:
         board_len = 36
         board_name_len = len(title)
@@ -47,10 +52,10 @@ class Player:
         print(" " * 5 + f"{' ' * 3}".join(self.ALPHABET))
         for ind, line in enumerate(board):
 
-            line = [f'{Color.BLUE}{l}{Color.OFF}' if l != self.default_delimeter else l for l in line]
+            line = [f'{Color.GREEN}{l}{Color.OFF}' if l not in [self.default_delimeter, "M", "H"] else l for l in line]
             print(f"{str(ind + 1)} {' ' if ind < 9 else ''}|{'|'.join(line)}|")
 
-        print("\n\n")
+        print("\n")
 
     def show_boards(self, initialising=False):
         if not initialising:
@@ -59,39 +64,45 @@ class Player:
 
     def collect_coordinate(self, initialisation=False):
         while True:
-            coord = input(f"Enter a {'starting ' if initialisation else ''}coordinate [eg: A3 or C10]: ")
-            if coord[0].isalpha() and coord[1].isdigit():
-                number_coord = coord[1:]
+            coord = input(f"Enter a {'starting ' if initialisation else ''}coordinate {'to hit' if not initialisation else ''} [eg: A3 or C10]: ")
+            if 1 < len(coord) <= 3:
+                if coord[0].isalpha() and coord[1].isdigit():
+                    number_coord = coord[1:]
 
-                if number_coord.isdigit():
-                    number_coord = int(number_coord)
-                    if 1 <= number_coord <= self.height:
-                        try:
-                            alpha_index = self.ALPHABET.index(coord[0].upper())
-                            coordinate = (number_coord - 1, alpha_index)
+                    if number_coord.isdigit():
+                        number_coord = int(number_coord)
+                        if 1 <= number_coord <= self.height:
+                            a = coord[0].upper()
+                            if a in self.ALPHABET:
+                                alpha_index = self.ALPHABET.index(a)
+                                coordinate = (number_coord - 1, alpha_index)
 
-                            if initialisation and self.personal_board[coordinate[0]][coordinate[1]] == self.default_delimeter:
+                                current_coordinate_value = self.personal_board[coordinate[0]][coordinate[1]]
+                                target_current_coordinate_value = self.target_board[coordinate[0]][coordinate[1]]
+
+                                if initialisation and current_coordinate_value != self.default_delimeter:
+                                    print(f"{Color.RED}This Position Clashes with another ship, Please try another coordinate{Color.OFF}")
+                                    continue
+
+                                if not initialisation and ("H" in target_current_coordinate_value or "M" in target_current_coordinate_value):
+                                    print(f"{Color.RED}You have already hit this position, try again{Color.OFF}")
+                                    continue
+
                                 return coordinate
-
-                            else:
-                                print(f"{Color.RED}This Position Clashes with another ship, Please try another coordinate{Color.OFF}")
-                                continue
-
-                        except ValueError as error:
-                            pass  # It is not in the alphabet
 
             # not valid coordinate
             clear()
             print(f"{Color.RED}This Position is not valid, Please try another coordinate{Color.OFF}")
 
-    def find_possible_orientations(self, start: tuple[int, int], length: int) -> list[str]:
+    def find_possible_orientations(self, start: tuple[int, int], length: int) -> list[tuple[str, tuple[int, int]]]:
         row, col = start
         possible = []
         for direction, (dr, dc) in ORIENTATIONS.items():
-            coords = [(row + dr * i, col + dc * i) for i in range(length + 1)]
-            if all(0 <= r < self.height and 0 <= c < self.width for r, c in coords):
-                if all(self.personal_board[r][c] == self.default_delimeter for r, c in coords):
-                    possible.append(direction)
+            coords = [(row + (dr * i), col + (dc * i)) for i in range(length + 1)]  # Get all the coordinates it would place
+            if all(self.valid_point((r, c)) for r, c in coords):  # Check if ALL of the coordinates are in the grid
+                if all(self.personal_board[r][c] == self.default_delimeter for r, c in coords):  # Check if all the coordinates are empty
+                    possible.append((direction, (dr, dc)))
+
         return possible
 
     def collect_ship_coordinates(self):
@@ -104,20 +115,24 @@ class Player:
 
             length -= 1
 
-            possible_orientations = self.find_possible_orientations(coordinates, length)
+            possible_orientations = [a for a, b in self.find_possible_orientations(coordinates, length)]
             orientation = ""
             while orientation not in possible_orientations:
                 orientation = input(f"Orientation {Color.GREEN}[{'/'.join(possible_orientations)}]{Color.OFF}: ").upper()
                 if orientation not in possible_orientations:
                     clear()
-                    print("INCORRECT VALUE: TRY AGAIN AND USE THE OPTIONS SHOWN")
+                    print(f"{Color.RED}INCORRECT VALUE: TRY AGAIN AND USE THE OPTIONS SHOWN{Color.OFF}")
 
             # Add the boat to the graph
             orientation_direction = ORIENTATIONS[orientation]
 
+            ship_buffer = []
             for x in range(length + 1):
                 r, c = coordinates[0] + orientation_direction[0] * x, coordinates[1] + (orientation_direction[1] * x)
                 self.personal_board[r][c] = ident
+                ship_buffer.append((r, c))
+
+            self.ships.append(ship_buffer)
 
             clear()
 
@@ -132,16 +147,50 @@ class Player:
                 if self.personal_board[row][column] != self.default_delimeter:  # It is not a valid point
                     continue  # Try again
 
-                possible_orientations = self.find_possible_orientations((row, column), ship_length - 1)
+                possible_orientations = [b for a, b in self.find_possible_orientations((row, column), ship_length - 1)]
                 if len(possible_orientations) == 0:   # It clashes with another ship
                     continue
 
                 orientation = random.randint(0, len(possible_orientations) - 1)
-                orientation = possible_orientations[orientation]
-                orientation_direction = ORIENTATIONS[orientation]
+                orientation_direction = possible_orientations[orientation]
 
+                ship_buffer = []
                 for x in range(ship_length):
                     r, c = row + (orientation_direction[0] * x), column + (orientation_direction[1] * x)
                     self.personal_board[r][c] = f" {ship[0].upper()} "
+                    ship_buffer.append((r, c))
+
+                self.ships.append(ship_buffer)
 
                 break
+
+    def receive_hit(self, coordinate):
+        """
+        :param coordinate: where they want to hit at.
+        :return: True (Hit) or False (Miss)
+        """
+
+        if self.personal_board[coordinate[0]][coordinate[1]] != self.default_delimeter:
+            # Confirmed got hit
+            self.health -= 1
+            self.personal_board[coordinate[0]][coordinate[1]] = f"{Color.RED} H {Color.OFF}"
+
+            for si, ship in enumerate(self.ships):
+                if coordinate in ship:
+                    print(f"SHIPS BEFORE: {self.ships}")
+
+                    ship.remove(coordinate)
+                    print(f"SHIPS NOW: {self.ships}")
+                    if len(ship) == 0:
+                        # SINK
+                        self.ships.pop(si)
+                        return "SINK"
+
+                    break
+
+            return True
+
+        self.personal_board[coordinate[0]][coordinate[1]] = f"{Color.BLUE} M {Color.OFF}"
+
+        return False
+
