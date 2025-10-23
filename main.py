@@ -110,7 +110,7 @@ def cpu_turn(user, cpu):
             base_coordinate[1] + next_direction[1]
         )
 
-        if not cpu.valid_point(next_coordinate):
+        if not cpu.valid_point(next_coordinate) or cpu.target_board[next_coordinate[0]][next_coordinate[1]] != cpu.default_delimeter:
             remove_first_queue()
             return cpu_turn(user, cpu)
 
@@ -121,20 +121,17 @@ def cpu_turn(user, cpu):
 
         if hit and hit != "SINK":  # If we get a sink, we do not need to continue in that direction
             directions_to_try = [next_direction]
-            for a, b in ORIENTATIONS.items():
+            """for a, b in ORIENTATIONS.items():
                 if b != next_direction and b != (-next_direction[0], -next_direction[1]):
-                    directions_to_try.append(b)
+                    directions_to_try.append(b)"""  # Turned out to be efficient in finding ships close together, however it took way too many hits.
 
-            cpu_queue.insert(0, (next_coordinate, directions_to_try))  # Add the next point to try if we hit, but no sink
-            """
-            DONE:
-                we will add next_direction first (as already done above)
-                Then we will add the 2 other directions (not the one we came from -[next_direction] and not the one we are going to)
-            """
+            # Add the next point in the same direction to try if we got a hit, but got no sink (boat is still afloat.)
+            cpu_queue.insert(0, (next_coordinate, directions_to_try))
 
             output_description = f"{Color.RED}The Computer hit one of your ships!{Color.OFF}"
 
         elif hit == "SINK":
+            cpu_queue.clear()  # Clear the queue as we have sunk that ship
             output_description = f"{Color.RED}The Computer sunk one of your ships!{Color.OFF}"
 
         else:
@@ -223,19 +220,3 @@ def play_game():
 
 if __name__ == '__main__':
     play_game()
-
-
-"""
-
-Notes:
-- I have added the ability for the CPU to intelligently target ships once it has found a hit, to target ships close together.
-  However in doing this, it is making it worse in a way, as the CPU is now trying every single possible direction around a EVERY hit, which is not optimal.
-  This is optimal in some cases, but not all, as it can lead to wasted hits in lots of scenarios.
-  
-To consider:
-- I am not too sure if when the CPU hits, and it reports a H, it is correct.
-  It seemed that the CPU hit points around the area it found a confirmed hit, but a lot of the points which i THINK should have been misses were reported as hits.
-  I may be making this up --> need to test more thoroughly (Remove clear ability to be able to look back into the past. & log CPU personal board.)
-
-
-"""

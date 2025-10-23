@@ -4,7 +4,7 @@ from color import Color
 
 
 def clear() -> None:
-    os.system('cls' if os.name == 'nt' else 'clear')
+    #  os.system('cls' if os.name == 'nt' else 'clear')
     pass
 
 
