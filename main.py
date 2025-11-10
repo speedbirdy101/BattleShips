@@ -11,7 +11,7 @@ def hit_coordinate(coordinate, hitter, receiver):
 
     return hit
 
-
+    
 def user_turn(user, cpu):
     coordinate = user.collect_coordinate()
     result = hit_coordinate(coordinate, user, cpu)
@@ -190,6 +190,12 @@ def play_game():
         # cpu.show_boards(initialising=True)
 
         if count % 2 == 0:  # Even: CPU
+            if user_choice_output_buffer != "":
+                print(user_choice_output_buffer)
+
+            # Make it slower and more sequencial
+            input("Press enter to continue")
+
             cpu_choice, cpu_choice_output_buffer = cpu_turn(user, cpu)
             cpu_choice = f"The Computer chose {Color.MAGENTA}{cpu_choice}{Color.OFF}"
 
@@ -198,9 +204,6 @@ def play_game():
 
             if cpu_choice != "" and cpu_choice_output_buffer != "":
                 print(f"{cpu_choice} - {cpu_choice_output_buffer}")
-
-            if user_choice_output_buffer != "":
-                print(user_choice_output_buffer)
 
             user_choice_output_buffer = user_turn(user, cpu)
 

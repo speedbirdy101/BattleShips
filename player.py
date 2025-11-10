@@ -4,8 +4,8 @@ from color import Color
 
 
 def clear() -> None:
-    #  os.system('cls' if os.name == 'nt' else 'clear')
-    pass
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 
 
 SHIPS = {
@@ -92,6 +92,7 @@ class Player:
 
             # not valid coordinate
             clear()
+            self.show_boards()
             print(f"{Color.RED}This Position is not valid, Please try another coordinate{Color.OFF}")
 
     def find_possible_orientations(self, start: tuple[int, int], length: int) -> list[tuple[str, tuple[int, int]]]:
